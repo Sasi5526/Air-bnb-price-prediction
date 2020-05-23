@@ -1,0 +1,198 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri May 15 20:12:35 2020
+
+@author: sasim
+"""
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import math
+import numpy as np
+
+dataset = pd.read_csv("D:\\sasi\\study\\ML\\ML project\\train.csv")
+
+dataset.info()
+
+null_value = dataset.isnull().sum().sort_values(ascending=False)
+null_value = dataset.isnull().sum().sort_values(ascending=False)
+dataset.describe()
+dataset.head()
+
+##Data Preprocessing
+dataset=dataset.drop("host_response_rate",axis=1)
+dataset=dataset.drop("review_scores_rating",axis=1)
+dataset=dataset.drop("first_review",axis=1)
+dataset=dataset.drop("last_review",axis=1)
+dataset=dataset.drop("thumbnail_url",axis=1)
+dataset=dataset.drop("zipcode",axis=1)
+dataset=dataset.drop("host_since",axis=1)
+dataset=dataset.drop("latitude",axis=1)
+dataset=dataset.drop("longitude",axis=1)
+dataset=dataset.drop("cleaning_fee",axis=1)
+dataset=dataset.drop("amenities",axis=1)
+dataset=dataset.drop("description",axis=1)
+dataset=dataset.drop("name",axis=1)
+dataset=dataset.drop("neighbourhood",axis=1)
+
+dataset.neighbourhood=dataset["neighbourhood"].fillna(dataset["neighbourhood"].mode()[0])
+dataset.bathrooms=dataset["bathrooms"].fillna(dataset["bathrooms"].mean())
+dataset.host_identity_verified=dataset["host_identity_verified"].fillna(dataset["host_identity_verified"].mode()[0])
+dataset.host_has_profile_pic=dataset["host_has_profile_pic"].fillna(dataset["host_has_profile_pic"].mode()[0])
+dataset.beds=dataset["beds"].fillna(dataset["beds"].mean())
+dataset.bedrooms=dataset["bedrooms"].fillna(dataset["bedrooms"].mean())
+dataset.head()
+dataset.info()
+
+#splitting x&y
+x= dataset
+x=x.drop('log_price',axis=1)
+y=dataset.loc[:,['log_price']]
+
+
+x=x.reshape(-1,1)
+
+###get dummies
+from sklearn.preprocessing import LabelEncoder,OneHotEncoder
+labelencoder=LabelEncoder()
+label=dataset.loc[:,["property_type","room_type","bed_type","cancellation_policy","city",
+                     "host_has_profile_pic","host_identity_verified","instant_bookable"]]
+new_label=label.apply(labelencoder.fit_transform)
+ohe=OneHotEncoder(categorical_features='label')
+#x_new=ohe.fit_transform(label)
+#x_train=ohe.fit_transform(x_train)
+new_ohe=pd.get_dummies(dataset.loc[:,["property_type","room_type","bed_type","cancellation_policy","city",
+                     "host_has_profile_pic","host_identity_verified","instant_bookable"]])
+new_ohe.info()
+
+new1_ohe=new_ohe.drop(['property_type_Apartment','bed_type_Airbed','cancellation_policy_flexible','city_Boston','host_has_profile_pic_f','host_identity_verified_f','instant_bookable_f'],1)
+x=x.drop(["property_type","room_type","bed_type","cancellation_policy","city",
+                     "host_has_profile_pic","host_identity_verified","instant_bookable"],1)
+x=pd.concat([x,new1_ohe], axis=1)
+
+x.info()
+##vif
+def vif_calc(x):
+    from statsmodels.stats.outliers_influence import variance_inflation_factor
+    x['intercept']=1
+    vif=pd.DataFrame()
+    vif['variables']=x.columns
+    vif['vif'] = [variance_inflation_factor(x.values,i) for i in range (0,x.shape[1])]
+    return(vif)
+vif = vif_calc(x)
+
+x=x.drop(['room_type_Entire home/apt'],1)
+x=x.drop(['city_NYC'],1)
+x=x.drop(['bed_type_Real Bed'],1)
+x=x.drop(['accommodates'],1)
+
+x=x.drop(['intercept'],1)
+
+
+#Train test split
+from sklearn.model_selection import train_test_split
+x_train, x_test, y_train, y_test = train_test_split(
+    x,y,test_size=1/3,random_state=0)
+
+#Multiple Linear Regression
+from sklearn.linear_model import LinearRegression
+regression = LinearRegression()
+
+regression.fit(x_train,y_train)
+
+y_pred = regression.predict(x_test)
+
+from sklearn.metrics import r2_score
+
+r2 = r2_score(y_test, y_pred)
+adj_r2 = 1-((1-r2)*(17-1)/(17-5-1))
+
+
+print(r2)
+print(adj_r2)
+
+#####
+
+####Regularization
+    ####Lasso&Ridge
+
+###Cross Validation
+from sklearn.model_selection import cross_val_score
+from sklearn.linear_model import LinearRegression
+
+lin = LinearRegression()
+mse= cross_val_score(lin,x,y,scoring='r2',
+                     cv=5)
+
+
+mse = np.mean(mse)
+print(mse)
+
+#ridge&lasso
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import GridSearchCV
+
+ridge = Ridge()
+
+parameter={'alpha':[0,1e-10,1e-15,1,2,3,10,50,100]}
+
+ridge_grid=GridSearchCV(ridge,
+                         param_grid=parameter,
+                         scoring='r2',
+                         cv=5)
+
+ridge_grid.fit(x,y)
+
+ridge_grid.best_score_
+ridge_grid.best_params_
+##
+from sklearn.linear_model import Lasso
+from sklearn.model_selection import GridSearchCV
+
+lasso = Lasso()
+
+parameter={'alpha':[0,1e-10,1e-15,1,2,3,10,50,100]}
+
+lasso_grid=GridSearchCV(lasso,
+                         param_grid=parameter,
+                         scoring='r2',
+                         cv=5)
+
+lasso_grid.fit(x,y)
+
+lasso_grid.best_score_
+lasso_grid.best_params_
+
+##
+from sklearn.linear_model import Lasso, LassoCV
+
+lassocv=LassoCV(alphas=[0,5,10,100,500,1000])
+
+lassocv.fit(x,y)
+coef=lassocv.coef_
+print(coef)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
