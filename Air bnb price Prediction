@@ -9,8 +9,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import math
 import numpy as np
+import seaborn as sb
 
-dataset = pd.read_csv("D:\\sasi\\study\\ML\\ML project\\train.csv")
+dataset = pd.read_csv("'''\\airbnb-price-prediction\\train.csv")
 
 dataset.info()
 
@@ -35,7 +36,6 @@ dataset=dataset.drop("description",axis=1)
 dataset=dataset.drop("name",axis=1)
 dataset=dataset.drop("neighbourhood",axis=1)
 
-dataset.neighbourhood=dataset["neighbourhood"].fillna(dataset["neighbourhood"].mode()[0])
 dataset.bathrooms=dataset["bathrooms"].fillna(dataset["bathrooms"].mean())
 dataset.host_identity_verified=dataset["host_identity_verified"].fillna(dataset["host_identity_verified"].mode()[0])
 dataset.host_has_profile_pic=dataset["host_has_profile_pic"].fillna(dataset["host_has_profile_pic"].mode()[0])
@@ -94,41 +94,113 @@ from sklearn.model_selection import train_test_split
 x_train, x_test, y_train, y_test = train_test_split(
     x,y,test_size=1/3,random_state=0)
 
+y_test = y_test.drop(['index'],1)
+
+
 #Multiple Linear Regression
 from sklearn.linear_model import LinearRegression
-regression = LinearRegression()
+regression=LinearRegression()
 
 regression.fit(x_train,y_train)
+regression.coef_
+regression.intercept_
+####y_pred
+y_pred=regression.predict(x_test)
 
-y_pred = regression.predict(x_test)
+from math import sqrt
+from sklearn.metrics import mean_squared_error as mse
+print(sqrt(mse(y_test,y_pred))) 
 
-from sklearn.metrics import r2_score
+# check score
+print('Train Score: ', regression.score(x_train,y_train))
+print('Test Score: ', regression.score(x_test,y_pred))
 
-r2 = r2_score(y_test, y_pred)
-adj_r2 = 1-((1-r2)*(17-1)/(17-5-1))
+
+'''We have train set accuracy of 0.541508927435149 and test set accuracy of 1.0'''
+
+##Decision tree
+from sklearn.tree import DecisionTreeRegressor
+tree = DecisionTreeRegressor()
+tree.fit(x_train,y_train)
+
+####y_pred
+y_pred_tree=tree.predict(x_test)
+
+print(sqrt(mse(y_test,y_pred_tree))) 
 
 
-print(r2)
-print(adj_r2)
 
-#####
+# check score
+print('Train Score: ', tree.score(x_train,y_train))
+print('Test Score: ', tree.score(x_test,y_pred_tree))
+
+'''We have train set accuracy of 1.0 and test set accuracy of 1.0'''
+
+##Random Forest Regressor
+from sklearn.ensemble import RandomForestRegressor
+rf_reg = RandomForestRegressor(n_estimators=100)
+rf_reg.fit(x_train,y_train)
+y_pred_ran = rf_reg.predict(x_test)
+
+print(sqrt(mse(y_test,y_pred_ran)))
+
+# check score
+print('Train Score: ', rf_reg.score(x_train,y_train))
+print('Test Score: ', rf_reg.score(x_test,y_pred_ran))
+
+
+'''We have train set accuracy of 0.9351817175108958 and test set accuracy of 1.0'''
+ 
+##Gradient boosting
+from sklearn.ensemble import GradientBoostingRegressor
+grad = GradientBoostingRegressor()
+grad.fit(x_train,y_train)
+
+####y_pred
+y_pred_grad=grad.predict(x_test)
+
+print(sqrt(mse(y_test,y_pred_grad))) 
+
+# check score
+print('Train Score: ', grad.score(x_train,y_train))
+print('Test Score: ', grad.score(x_test,y_pred_grad))
+
+
+'''We have train set accuracy of 0.5863712843579777 and test set accuracy of 1.0'''
+
+# XG Boosting
+import xgboost
+from xgboost import XGBRegressor
+xboost = XGBRegressor()
+xboost.fit(x_train,y_train)
+####y_pred
+y_pred_boost=xboost.predict(x_test)
+
+print(sqrt(mse(y_test,y_pred_boost))) 
+
+# check score
+print('Train Score: ', xboost.score(x_train,y_train))
+print('Test Score: ', xboost.score(x_test,y_pred_boost))
+
+
+'''We have train set accuracy of 0.6535062127252593 and test set accuracy of 1.0'''
+
+
 
 ####Regularization
     ####Lasso&Ridge
-
+    
 ###Cross Validation
-from sklearn.model_selection import cross_val_score
 from sklearn.linear_model import LinearRegression
-
 lin = LinearRegression()
-mse= cross_val_score(lin,x,y,scoring='r2',
-                     cv=5)
-
+from sklearn.model_selection import cross_val_score
+mse=cross_accuracy=cross_val_score(lin,x_train,y_train,cv=5,scoring='r2')
 
 mse = np.mean(mse)
 print(mse)
 
 #ridge&lasso
+#Ridge
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import GridSearchCV
 
@@ -141,11 +213,13 @@ ridge_grid=GridSearchCV(ridge,
                          scoring='r2',
                          cv=5)
 
-ridge_grid.fit(x,y)
+ridge_grid.fit(x_train,y_train)
+y_pred_ridge=ridge_grid.predict(x_test)
 
 ridge_grid.best_score_
 ridge_grid.best_params_
-##
+
+##Lasso
 from sklearn.linear_model import Lasso
 from sklearn.model_selection import GridSearchCV
 
@@ -158,41 +232,213 @@ lasso_grid=GridSearchCV(lasso,
                          scoring='r2',
                          cv=5)
 
-lasso_grid.fit(x,y)
+lasso_grid.fit(x_train,y_train)
 
+y_pred_lasso=lasso_grid.predict(x_test)
 lasso_grid.best_score_
 lasso_grid.best_params_
 
-##
-from sklearn.linear_model import Lasso, LassoCV
 
-lassocv=LassoCV(alphas=[0,5,10,100,500,1000])
-
-lassocv.fit(x,y)
-coef=lassocv.coef_
-print(coef)
-
-
-
-
-
-
+##PCA
+from sklearn.preprocessing import StandardScaler
+scale=StandardScaler()
+PCA=scale.fit_transform(x)
+PCA=pd.DataFrame(PCA)
+dataset.columns
+PCA.columns=x.columns
+new_PCA=pd.concat([x,PCA],axis=1)
+#train test split
+from sklearn.model_selection import train_test_split
+x_train_pca, x_test_pca,y_train_pca,y_test_pca = train_test_split(new_PCA,y,test_size = 0.25, random_state = 100)
 
 
+from sklearn.decomposition import PCA
+pca=PCA()
+
+x_train_pca=pca.fit_transform(x_train_pca)
+x_test_pca=pca.transform(x_test_pca)
+explained_ratio=pca.explained_variance_ratio_
+
+
+np.cumsum(explained_ratio)
+####
+from sklearn.decomposition import PCA
+pca=PCA(n_components=10)
+
+x_train_pca=pca.fit_transform(x_train_pca)
+x_test_pca=pca.transform(x_test_pca)
+explained_ratio=pca.explained_variance_ratio_
+
+import numpy as np
+np.cumsum(explained_ratio)
+
+
+from sklearn.linear_model import LinearRegression
+regression=LinearRegression()
+regression.fit(x_train_pca,y_train_pca)
+regression.coef_
+regression.intercept_
+
+y_pred_pca=regression.predict(x_test_pca)
+
+from sklearn.metrics import r2_score
+r2_score(y_test_pca, y_pred_pca)
+
+# check score
+print('Train Score: ', regression.score(x_train_pca,y_train_pca))
+print('Test Score: ', regression.score(x_test_pca,y_pred_pca))
+'''We have train set accuracy of 0.33781126055345057 and test set accuracy of 1.0'''
 
 
 
 
+##Ordinary least square
+##Backward elimination
+import statsmodels.api as sm
+x['intercept']=1
+x_OLS = x
+reg_OLS = sm.OLS(y,x_OLS).fit()
+reg_OLS.summary()
+max(reg_OLS.pvalues)
+
+x_OLS=x_OLS.drop(["bed_type_Pull-out Sofa"],axis=1)
+
+#iteration 1
+reg_OLS = sm.OLS(y,x_OLS).fit()
+reg_OLS.summary()
+max(reg_OLS.pvalues)
+
+x_OLS=x_OLS.drop(["property_type_Chalet"],axis=1)
+
+#iteration 2
+reg_OLS = sm.OLS(y,x_OLS).fit()
+reg_OLS.summary()
+max(reg_OLS.pvalues)
+
+x_OLS=x_OLS.drop(["id"],axis=1)
+
+#iteration 3
+reg_OLS = sm.OLS(y,x_OLS).fit()
+reg_OLS.summary()
+max(reg_OLS.pvalues)
+
+x_OLS=x_OLS.drop(["property_type_Townhouse"],axis=1)
+
+#iteration 4
+reg_OLS = sm.OLS(y,x_OLS).fit()
+reg_OLS.summary()
+max(reg_OLS.pvalues)
+
+x_OLS=x_OLS.drop(["property_type_Cave"],axis=1)
+
+#iteration 5
+reg_OLS = sm.OLS(y,x_OLS).fit()
+reg_OLS.summary()
+max(reg_OLS.pvalues)
+
+x_OLS=x_OLS.drop(["property_type_Casa particular"],axis=1)
+
+#iteration 6
+reg_OLS = sm.OLS(y,x_OLS).fit()
+reg_OLS.summary()
+max(reg_OLS.pvalues)
+
+x_OLS=x_OLS.drop(["property_type_Lighthouse"],axis=1)
+
+#iteration 7
+reg_OLS = sm.OLS(y,x_OLS).fit()
+reg_OLS.summary()
+max(reg_OLS.pvalues)
+
+x_OLS=x_OLS.drop(["property_type_Treehouse"],axis=1)
+
+#iteration 8
+reg_OLS = sm.OLS(y,x_OLS).fit()
+reg_OLS.summary()
+max(reg_OLS.pvalues)
+
+x_OLS=x_OLS.drop(["property_type_Bungalow"],axis=1)
+
+#iteration 9
+reg_OLS = sm.OLS(y,x_OLS).fit()
+reg_OLS.summary()
+max(reg_OLS.pvalues)
+
+x_OLS=x_OLS.drop(["property_type_Cabin"],axis=1)
+
+#iteration 10
+reg_OLS = sm.OLS(y,x_OLS).fit()
+reg_OLS.summary()
+max(reg_OLS.pvalues)
+
+x_OLS=x_OLS.drop(["cancellation_policy_strict"],axis=1)
+
+#iteration 11
+reg_OLS = sm.OLS(y,x_OLS).fit()
+reg_OLS.summary()
+max(reg_OLS.pvalues)
+
+x_OLS=x_OLS.drop(["property_type_Yurt"],axis=1)
+
+#iteration 12
+reg_OLS = sm.OLS(y,x_OLS).fit()
+reg_OLS.summary()
+max(reg_OLS.pvalues)
+
+x_OLS=x_OLS.drop(["property_type_Island"],axis=1)
+
+#iteration 13
+reg_OLS = sm.OLS(y,x_OLS).fit()
+reg_OLS.summary()
+max(reg_OLS.pvalues)
+
+x_OLS=x_OLS.drop(["property_type_Parking Space"],axis=1)
+
+#iteration 14
+reg_OLS = sm.OLS(y,x_OLS).fit()
+reg_OLS.summary()
+max(reg_OLS.pvalues)
+
+x_OLS=x_OLS.drop(["property_type_Train"],axis=1)
+
+#iteration 15
+reg_OLS = sm.OLS(y,x_OLS).fit()
+reg_OLS.summary()
+max(reg_OLS.pvalues)
+
+x_OLS=x_OLS.drop(["property_type_Vacation home"],axis=1)
+
+#iteration 16
+reg_OLS = sm.OLS(y,x_OLS).fit()
+reg_OLS.summary()
+max(reg_OLS.pvalues)
 
 
+reg_OLS.rsquared_adj
+reg_OLS.rsquared
 
 
+x_OLS=x_OLS.drop(['intercept'],axis=1)
+from sklearn.model_selection import train_test_split
+x_train_ols, x_test_ols,y_train_ols,y_test_ols = train_test_split(x_OLS,y,test_size = 0.25, random_state = 100)
+
+from sklearn.linear_model import LinearRegression
+regression=LinearRegression()
+regression.fit(x_train_ols,y_train_ols)
+regression.coef_
+regression.intercept_
 
 
+y_pred_ols=regression.predict(x_test_ols)
 
 
+from sklearn.metrics import r2_score
 
+r2_ols = r2_score(y_test_ols, y_pred_ols)
+print(r2_ols)
+plt.scatter(y_test_ols,y_pred_ols)
 
+x_train_ols.info()
 
 
 
